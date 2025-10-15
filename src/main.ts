@@ -28,6 +28,11 @@ const devices: { [ip: string]: string } = {};
 const loggedDevices = [] as string[];
 
 export class GoveeLocal extends utils.Adapter {
+	/**
+	 * The main class for the GoveeLocal adapter.
+	 *
+	 * @param options Partial adapter options.
+	 */
 	public constructor(options: Partial<utils.AdapterOptions> = {}) {
 		super({
 			...options,
@@ -35,8 +40,6 @@ export class GoveeLocal extends utils.Adapter {
 		});
 		this.on('ready', this.onReady.bind(this));
 		this.on('stateChange', this.onStateChange.bind(this));
-		// this.on('objectChange', this.onObjectChange.bind(this));
-		// this.on('message', this.onMessage.bind(this));
 		this.on('unload', this.onUnload.bind(this));
 	}
 
@@ -206,6 +209,38 @@ export class GoveeLocal extends utils.Adapter {
 						`${sendingDevice}.devStatus.colorTemInKelvin`,
 						devStatusMessageObject.msg.data.colorTemInKelvin,
 					);
+					void this.setObjectNotExists(`${sendingDevice}.devStatus.hue`, {
+						type: 'state',
+						common: {
+							name: 'Hue of the light',
+							type: 'number',
+							role: 'level.color.hue',
+							read: true,
+							write: true,
+							min: 0,
+							max: 360,
+						},
+						native: {},
+					});
+					void this.updateStateAsync(`${sendingDevice}.devStatus.hue`, devStatusMessageObject.msg.data.hue);
+
+					void this.setObjectNotExists(`${sendingDevice}.devStatus.saturation`, {
+						type: 'state',
+						common: {
+							name: 'Saturation of the light',
+							type: 'number',
+							role: 'level.color.saturation',
+							read: true,
+							write: true,
+							min: 0,
+							max: 100,
+						},
+						native: {},
+					});
+					void this.updateStateAsync(
+						`${sendingDevice}.devStatus.saturation`,
+						devStatusMessageObject.msg.data.saturation,
+					);
 				}
 				break;
 			}
@@ -316,6 +351,24 @@ export class GoveeLocal extends utils.Adapter {
 							const colorMessageBuffer = Buffer.from(JSON.stringify(colorMessage));
 							void socket.send(colorMessageBuffer, 0, colorMessageBuffer.length, CONTROL_PORT, receiver);
 						}
+						break;
+					}
+					case 'hue': {
+						const hueMessage = { msg: { cmd: 'hue', data: { value: state.val } } };
+						const hueMessageBuffer = Buffer.from(JSON.stringify(hueMessage));
+						void socket.send(hueMessageBuffer, 0, hueMessageBuffer.length, CONTROL_PORT, receiver);
+						break;
+					}
+					case 'saturation': {
+						const saturationMessage = { msg: { cmd: 'saturation', data: { value: state.val } } };
+						const saturationMessageBuffer = Buffer.from(JSON.stringify(saturationMessage));
+						void socket.send(
+							saturationMessageBuffer,
+							0,
+							saturationMessageBuffer.length,
+							CONTROL_PORT,
+							receiver,
+						);
 						break;
 					}
 				}
